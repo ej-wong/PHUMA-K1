@@ -57,6 +57,10 @@ def parse_args():
     # Skating velocity threshold
     parser.add_argument("--skating_distance_threshold", type=float, default=0.0025, help="Distance threshold for skating velocity calculation (meters)")
 
+    # Root-travel scale (overrides config 'root_scale'). Subject-dependent:
+    # = robot_leg / captured_human_leg. Set per dataset for a new subject.
+    parser.add_argument("--root_scale", type=float, default=None, help="Override config root_scale (robot_leg/human_leg). Default: use robot config value.")
+
     return parser.parse_args()
 
 def main(args):
@@ -151,6 +155,18 @@ def main(args):
     human_joints_traj_zup[..., 2] = human_joints_traj[..., 1]
     human_joints_traj = human_joints_traj_zup
 
+    # Scale horizontal root travel to the robot's leg length so a smaller robot
+    # doesn't over-stride along a full-size human path. z (=up=height) is left
+    # unscaled so feet stay grounded at the robot's natural height, and the
+    # body-relative limb geometry is preserved (betas already size the body).
+    root_scale = args.root_scale if args.root_scale is not None else robot_config.get("root_scale", 1.0)
+    if root_scale != 1.0:
+        pelvis_horiz = human_joints_traj[:, 0:1, :].copy()
+        pelvis_horiz[..., 2] = 0.0
+        shift = pelvis_horiz * (root_scale - 1.0)
+        human_joints_traj = human_joints_traj + shift
+        transl = transl + shift[:, 0, :]
+
     rotation = R.from_rotvec(global_orient)
     root_ori_matrix_yup = rotation.as_matrix()
     
@@ -241,9 +257,20 @@ def main(args):
         
         pose_batch[0, :, 0, :] = root_ori
         joint_axes = robot_config.get("joint_axes")
+        joint_body_names = robot_config.get("joint_body_names")
         for k, joint_name in enumerate(robot_config["joint_names"]):
             if k == 0:
                 continue  # skip free joint entry
+            if joint_body_names is not None:
+                # Explicit joint->driven-body mapping (robust when joint names
+                # are not substrings of body names, e.g. custom robots).
+                l = robot_config["body_names"].index(joint_body_names[k])
+                if joint_axes is not None:
+                    axis = torch.tensor(joint_axes[k], dtype=torch.float32, device=retarget.device)
+                    pose_batch[0, :, l, :] = joint_pos[:, k-1:k] * axis.unsqueeze(0)
+                else:
+                    pose_batch[0, :, l, robot_config["dof"][k]] = joint_pos[:, k-1]
+                continue
             key = joint_name.removesuffix("_joint")
             for l, body_name in enumerate(robot_config["body_names"]):
                 if key in body_name:

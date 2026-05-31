@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"D:/conda-envs/phuma/python.exe\" _diag_float.py)",
+      "Bash(echo \"wrote, exit=$?\")",
+      "Bash(python -c \"print\\('PYTHON-LIVE'\\)\")",
+      "Bash(rm -f _diag_float.py _diag_float.out _float2.txt 2>/dev/null; echo cleaned)",
+      "Bash(\"D:/conda-envs/phuma/python.exe\" _diag_contact.py)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(\"D:/conda-envs/phuma/python.exe\" _diag_drift.py > _dd.txt 2>&1; echo \"exit=$?\"; cat _dd.txt)",
+      "Bash(\"D:/conda-envs/phuma/python.exe\" _diag_drift.py)",
+      "Bash(\"D:/conda-envs/phuma/python.exe\" _dr.py)",
+      "Bash(rm -f _dr.py _dro.txt)"
+    ],
+    "additionalDirectories": [
+      "D:\\Code\\PHUMA",
+      "d:\\Code\\PHUMA"
+    ]
+  }
+}

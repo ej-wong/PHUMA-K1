@@ -171,8 +171,22 @@ def main(args):
                             print(f"[PASS] File: {chunk_file} - Spine1 to BoS distance {spine1_to_bos_distance} is lower than 0.11.")
                     
                     if is_valid:
-                        # Replace 'human_pose' with 'human_pose_preprocessed' in root path
-                        output_root = root.replace('human_pose', 'human_pose_preprocessed', 1)
+                        # Route output to data/human_pose_preprocessed/<dataset>/...,
+                        # preserving the dataset subfolder automatically.
+                        # Original PHUMA layout has the input under data/human_pose/,
+                        # so we just swap that path component. Other layouts (e.g.
+                        # GVHMR: data/GVHMR/<dataset>/npy) derive <dataset> from the
+                        # input folder name, ignoring a trailing 'npy'/'pt'.
+                        if 'human_pose' in root:
+                            output_root = root.replace('human_pose', 'human_pose_preprocessed', 1)
+                        else:
+                            _folder = os.path.normpath(args.human_pose_folder)
+                            _parts = _folder.split(os.sep)
+                            _dataset = _parts[-2] if _parts[-1] in ('npy', 'pt') else _parts[-1]
+                            _rel = os.path.relpath(root, _folder)
+                            output_root = join("data", "human_pose_preprocessed", _dataset)
+                            if _rel not in ('.', ''):
+                                output_root = join(output_root, _rel)
                         preprocessed_motion_file = join(output_root, f"{chunk_file}.npy")
                         
                         os.makedirs(dirname(preprocessed_motion_file), exist_ok=True)
@@ -185,7 +199,11 @@ def main(args):
                         }
 
                         if args.visualize > 0:
-                            video_file = join(args.project_dir, "data", "video", "human_pose_preprocessed", f"{chunk_file}.mp4")
+                            # Mirror the preprocessed subfolder under data/video/.
+                            video_root = output_root.replace(
+                                'human_pose_preprocessed',
+                                join('video', 'human_pose_preprocessed'), 1)
+                            video_file = join(args.project_dir, video_root, f"{chunk_file}.mp4")
                             frames = render_smpl_pose(smpl, smpl_config, chunk_motion_parms)
                             write_video(video_file, frames, fps=args.fps)
 

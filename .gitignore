@@ -1,3 +1,10 @@
 *.pyc
 __pycache__/
 .DS_Store
+data/video/
+*.mp4
+asset/human_model/smpl/
+asset/human_model/smplx/
+data/GVHMR/
+data/human_pose_preprocessed/
+data/humanoid_pose/

@@ -63,6 +63,10 @@ def parse_args():
     # Skating velocity threshold
     parser.add_argument("--skating_distance_threshold", type=float, default=0.0025, help="Distance threshold for skating velocity calculation (meters)")
 
+    # Root-travel scale (overrides config 'root_scale'). Subject-dependent:
+    # = robot_leg / captured_human_leg. Set per dataset for a new subject.
+    parser.add_argument("--root_scale", type=float, default=None, help="Override config root_scale (robot_leg/human_leg). Default: use robot config value.")
+
     return parser.parse_args()
 
 def process_single_file(args_tuple):
@@ -73,9 +77,17 @@ def process_single_file(args_tuple):
         # Get filename without extension
         motion_file = os.path.basename(motion_file_path)
         base_name = os.path.splitext(motion_file)[0]
-        
+
+        # Mirror the input folder's structure under the output roots so the
+        # dataset subfolder (e.g. dataset_xxxx) is preserved automatically.
+        # rel_path is the path of this file relative to the PARENT of
+        # --human_pose_folder, i.e. "<dataset>/.../<file>".
+        input_parent = dirname(os.path.normpath(args.human_pose_folder))
+        rel_path = os.path.relpath(motion_file_path, input_parent)
+        rel_dir = dirname(rel_path)
+
         # Construct output paths
-        robot_pose_file = join(args.project_dir, "data", "humanoid_pose", args.robot_name, motion_file)
+        robot_pose_file = join(args.project_dir, "data", "humanoid_pose", args.robot_name, rel_path)
         
         human_model_dir = join(args.project_dir, "asset", "human_model")
         robot_model_dir = join(args.project_dir, "asset", "humanoid_model", args.robot_name)
@@ -164,6 +176,18 @@ def process_single_file(args_tuple):
         human_joints_traj_zup[..., 1] = human_joints_traj[..., 0]
         human_joints_traj_zup[..., 2] = human_joints_traj[..., 1]
         human_joints_traj = human_joints_traj_zup
+
+        # Scale horizontal root travel to the robot's leg length so a smaller robot
+        # doesn't over-stride along a full-size human path. z (=up=height) is left
+        # unscaled so feet stay grounded at the robot's natural height, and the
+        # body-relative limb geometry is preserved (betas already size the body).
+        root_scale = args.root_scale if args.root_scale is not None else robot_config.get("root_scale", 1.0)
+        if root_scale != 1.0:
+            pelvis_horiz = human_joints_traj[:, 0:1, :].copy()
+            pelvis_horiz[..., 2] = 0.0
+            shift = pelvis_horiz * (root_scale - 1.0)
+            human_joints_traj = human_joints_traj + shift
+            transl = transl + shift[:, 0, :]
 
         rotation = R.from_rotvec(global_orient)
         root_ori_matrix_yup = rotation.as_matrix()
@@ -255,9 +279,20 @@ def process_single_file(args_tuple):
             
             pose_batch[0, :, 0, :] = root_ori
             joint_axes = robot_config.get("joint_axes")
+            joint_body_names = robot_config.get("joint_body_names")
             for k, joint_name in enumerate(robot_config["joint_names"]):
                 if k == 0:
                     continue  # skip free joint entry
+                if joint_body_names is not None:
+                    # Explicit joint->driven-body mapping (robust when joint names
+                    # are not substrings of body names, e.g. custom robots).
+                    l = robot_config["body_names"].index(joint_body_names[k])
+                    if joint_axes is not None:
+                        axis = torch.tensor(joint_axes[k], dtype=torch.float32, device=retarget.device)
+                        pose_batch[0, :, l, :] = joint_pos[:, k-1:k] * axis.unsqueeze(0)
+                    else:
+                        pose_batch[0, :, l, robot_config["dof"][k]] = joint_pos[:, k-1]
+                    continue
                 key = joint_name.removesuffix("_joint")
                 for l, body_name in enumerate(robot_config["body_names"]):
                     if key in body_name:
@@ -414,7 +449,7 @@ def process_single_file(args_tuple):
         np.save(robot_pose_file, motion)
 
         if args.visualize:
-            robot_video_file = join(args.project_dir, "data", "video", "humanoid_pose", args.robot_name, f"{base_name}.mp4")
+            robot_video_file = join(args.project_dir, "data", "video", "humanoid_pose", args.robot_name, rel_dir, f"{base_name}.mp4")
             os.makedirs(dirname(robot_video_file), exist_ok=True)
             frames = render_robot_pose(robot_model_dir, dof_pos, root_pos, root_ori)
             write_video(robot_video_file, frames, fps=args.fps, reverse_rgb=True)
