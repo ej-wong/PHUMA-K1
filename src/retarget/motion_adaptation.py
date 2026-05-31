@@ -159,7 +159,11 @@ def main(args):
     # doesn't over-stride along a full-size human path. z (=up=height) is left
     # unscaled so feet stay grounded at the robot's natural height, and the
     # body-relative limb geometry is preserved (betas already size the body).
-    root_scale = args.root_scale if args.root_scale is not None else robot_config.get("root_scale", 1.0)
+    # root_scale is resolved automatically per dataset (robot_leg / human_leg)
+    # unless overridden with --root_scale; see resolve_root_scale.
+    dataset_name = dataset_name_from_path(args.human_pose_file)
+    root_scale = resolve_root_scale(args.root_scale, robot_config, args.project_dir,
+                                    dataset_name, human_model_dir)
     if root_scale != 1.0:
         pelvis_horiz = human_joints_traj[:, 0:1, :].copy()
         pelvis_horiz[..., 2] = 0.0

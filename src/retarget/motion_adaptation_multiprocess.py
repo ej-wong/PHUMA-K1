@@ -462,7 +462,19 @@ def main(args):
     if not os.path.exists(args.human_pose_folder):
         print(f"Error: Input folder does not exist: {args.human_pose_folder}")
         return
-    
+
+    # Resolve root_scale ONCE here (not per worker) so the dataset's .pt betas
+    # are read a single time. Stash the resolved float into args so every worker
+    # uses it directly. (Auto = robot_leg / mean_human_leg; see resolve_root_scale.)
+    import yaml as _yaml
+    _robot_cfg_path = os.path.join(args.project_dir, "asset", "humanoid_model", args.robot_name, "config.yaml")
+    with open(_robot_cfg_path, "r") as _f:
+        _robot_cfg = _yaml.safe_load(_f)
+    _human_model_dir = os.path.join(args.project_dir, "asset", "human_model")
+    _dataset = dataset_name_from_path(args.human_pose_folder)
+    args.root_scale = resolve_root_scale(args.root_scale, _robot_cfg, args.project_dir,
+                                         _dataset, _human_model_dir)
+
     # Parse GPU IDs if provided
     gpu_ids = None
     if args.gpu_ids:

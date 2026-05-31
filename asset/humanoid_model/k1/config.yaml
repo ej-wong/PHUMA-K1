@@ -1,11 +1,14 @@
 root_pos: [0.0000, 0.0000, 0.5519]
 root_ori: [0.0000, 0.0000, 0.0000, 1.0000]
-# Horizontal root-travel scale = robot_leg / captured_human_leg.
-# Shrinks the reference path so this sub-human-size robot doesn't over-stride/slide.
-# NOTE: this is SUBJECT-dependent (depends on the captured human's leg length).
-# This value targets the 'turning_joe_2' subject (real leg 0.989 m from betas).
-# Override per-dataset with --root_scale on the retarget scripts for other subjects.
-root_scale: 0.415 # k1 leg (0.411) / Joe leg (0.989); SMPL-neutral subject would be 0.44
+# K1's leg length (hip->knee->ankle->foot, T-pose). Used to AUTO-compute
+# root_scale per dataset as robot_leg_length / mean_human_leg, where the human
+# leg is measured from the dataset's GVHMR .pt betas (cached). See resolve_root_scale.
+robot_leg_length: 0.411
+# Fallback root_scale, used only if auto-compute can't run (no .pt/betas for the
+# dataset) AND --root_scale isn't passed. Auto-compute is preferred.
+# = robot_leg / captured_human_leg; shrinks the path so this sub-human-size robot
+# doesn't over-stride/slide. 0.415 targets turning_joe_2 (human leg 0.989 m).
+root_scale: 0.415
 dof_pos: [
   # Head: yaw, pitch
   0.0000,  0.0000,
