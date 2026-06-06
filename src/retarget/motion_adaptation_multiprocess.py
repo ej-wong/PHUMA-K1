@@ -12,7 +12,7 @@ from smplx.joint_names import JOINT_NAMES
 from tqdm import tqdm 
 from scipy.spatial.transform import Rotation as R 
 
-from utils.smpl import load_motion_parms, find_robust_ground, _butter_lowpass_filter, _unify_quaternion_signs
+from utils.smpl import load_motion_parms, find_robust_ground, _butter_lowpass_filter, _unify_quaternion_signs, resolve_root_scale, dataset_name_from_path
 from utils.robot import HumanoidRetargetKeypoint 
 from utils.visualize import render_robot_pose, write_video
 

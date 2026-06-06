@@ -70,6 +70,10 @@
               <joint name="Left_Elbow_Yaw" pos="0 0 0" axis="0 0 1" range="-2.44 0" stiffness="4.0" damping="1.0" armature="0.001" />
               <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.75294 0.75294 0.75294 1" mesh="Left_Arm_4" />
               <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="Left_Arm_4" />
+              <body name="left_hand_keypoint" pos="0 0.165 0">
+                <!-- retarget wrist keypoint: end of forearm, moves with elbow flexion (Left_Elbow_Yaw) -->
+                <!-- <geom type="sphere" size="0.02" rgba="0 1 0 0.8"/> -->
+              </body>
             </body>
           </body>
         </body>
@@ -93,6 +97,10 @@
               <joint name="Right_Elbow_Yaw" pos="0 0 0" axis="0 0 1" range="0 2.44" stiffness="4.0" damping="1.0" armature="0.001" />
               <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.75294 0.75294 0.75294 1" mesh="Right_Arm_4" />
               <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="Right_Arm_4" />
+              <body name="right_hand_keypoint" pos="0 -0.165 0">
+                <!-- retarget wrist keypoint: end of forearm, moves with elbow flexion (Right_Elbow_Yaw) -->
+                <!-- <geom type="sphere" size="0.02" rgba="0 1 0 0.8"/> -->
+              </body>
             </body>
           </body>
         </body>

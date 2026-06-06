@@ -31,14 +31,14 @@ bone_mapping:
   - ['pelvis', 'right_hip', 'Trunk', 'Right_Hip_Roll']
   - ['right_hip', 'right_knee', 'Right_Hip_Roll', 'Right_Shank']
   - ['right_knee', 'right_ankle', 'Right_Shank', 'Right_Ankle_Cross']
-  # Left Arm
+  # Left Arm (upper arm = shoulder->elbow; forearm = elbow->wrist, driven by elbow flexion)
   - ['pelvis', 'left_shoulder', 'Trunk', 'Left_Arm_2']
-  - ['left_shoulder', 'left_elbow', 'Left_Arm_2', 'Left_Arm_3']
-  - ['left_elbow', 'left_wrist', 'Left_Arm_3', 'left_hand_link']
+  - ['left_shoulder', 'left_elbow', 'Left_Arm_2', 'left_hand_link']
+  - ['left_elbow', 'left_wrist', 'left_hand_link', 'left_hand_keypoint']
   # Right Arm
   - ['pelvis', 'right_shoulder', 'Trunk', 'Right_Arm_2']
-  - ['right_shoulder', 'right_elbow', 'Right_Arm_2', 'Right_Arm_3']
-  - ['right_elbow', 'right_wrist', 'Right_Arm_3', 'right_hand_link']
+  - ['right_shoulder', 'right_elbow', 'Right_Arm_2', 'right_hand_link']
+  - ['right_elbow', 'right_wrist', 'right_hand_link', 'right_hand_keypoint']
 
 keypoints:
   - { name: 'pelvis',                  body: 'Trunk',               }
@@ -54,11 +54,11 @@ keypoints:
   - { name: 'right_toe_keypoint',      body: 'right_toe_keypoint',  }
   - { name: 'torso_keypoint',          body: 'Trunk',               }
   - { name: 'left_shoulder_keypoint',  body: 'Left_Arm_2',          }
-  - { name: 'left_elbow_keypoint',     body: 'Left_Arm_3',          }
-  - { name: 'left_wrist_keypoint',     body: 'left_hand_link',      }
+  - { name: 'left_elbow_keypoint',     body: 'left_hand_link',      }  # elbow flexion joint (model name: Left_Elbow_Yaw)
+  - { name: 'left_wrist_keypoint',     body: 'left_hand_keypoint',  }  # end of forearm; moves with elbow flexion
   - { name: 'right_shoulder_keypoint', body: 'Right_Arm_2',         }
-  - { name: 'right_elbow_keypoint',    body: 'Right_Arm_3',         }
-  - { name: 'right_wrist_keypoint',    body: 'right_hand_link',     }
+  - { name: 'right_elbow_keypoint',    body: 'right_hand_link',     }  # elbow flexion joint (model name: Right_Elbow_Yaw)
+  - { name: 'right_wrist_keypoint',    body: 'right_hand_keypoint', }  # end of forearm; moves with elbow flexion
 
 body_names: [
   'Trunk',
@@ -68,10 +68,12 @@ body_names: [
   'Left_Arm_2',
   'Left_Arm_3',
   'left_hand_link',
+  'left_hand_keypoint',
   'Right_Arm_1',
   'Right_Arm_2',
   'Right_Arm_3',
   'right_hand_link',
+  'right_hand_keypoint',
   'Left_Hip_Pitch',
   'Left_Hip_Roll',
   'Left_Hip_Yaw',

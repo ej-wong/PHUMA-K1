@@ -23,7 +23,7 @@ python src/curation/gvhmr_to_phuma.py `
 python src/curation/preprocess_smplx_folder.py `
     --project_dir $PROJECT_DIR `
     --human_pose_folder data/GVHMR/dataset_<name>/npy `
-    --foot_contact_threshold 0.05 --ground_threshold 0.05 `
+    --foot_contact_threshold 0.05 --ground_threshold 0.10 `
     --chunk_size 999999 --chunk_overlap 0 --chunk_min_frames 1 --visualize 1
 
 # 3. (one-time per robot) Shape adaptation — fit SMPL betas to K1:
@@ -33,7 +33,7 @@ python src/retarget/shape_adaptation.py --project_dir $PROJECT_DIR --robot_name 
 python src/retarget/motion_adaptation_multiprocess.py `
     --project_dir $PROJECT_DIR --robot_name k1 `
     --human_pose_folder data/human_pose_preprocessed/dataset_<name> `
-    --grounding_weight 30 --skating_weight 0.05 --num_iter_dof 5001 `
+    --grounding_weight 30 --skating_weight 0.05 --num_iter_dof 3001 `
     --gpu_ids 0 --processes_per_gpu 3 --visualize 1
 ```
 
@@ -114,8 +114,10 @@ height, pelvis/spine→base-of-support), splits into chunks, writes passing (N,7
 
 - Keep each clip whole: `--chunk_size 999999 --chunk_overlap 0 --chunk_min_frames 1`
   (default is 4 s / 120-frame windows with 0.5 s overlap, for RL reference clips).
-- `--foot_contact_threshold` — drops chunks below this contact score (higher = stricter).
-- `--ground_threshold` — width of the ground-contact band (see Section 7).
+- `--ground_threshold` — *per-frame* contact tolerance: how close a foot must be to the detected
+  floor to count as touching it (see Section 7).
+- `--foot_contact_threshold` — *per-clip* quality gate: discards a whole chunk if, on average, it
+  isn't grounded enough (higher = stricter; see Section 7).
 
 ### 4.3 Shape adaptation (`shape_adaptation.py`, one-time per robot)
 Fits SMPL `betas` to K1; writes `asset/humanoid_model/k1/betas.npy`, reused by all motion
@@ -180,10 +182,17 @@ Parameters are grouped by the pipeline stage that consumes them.
 
 ### Curation — `preprocess_smplx_folder.py`
 
+Two different questions, two parameters. Picture the floor as a thin slab at the height where the
+foot vertices pile up most. `--ground_threshold` asks, *per frame*, "is this foot touching the slab
+right now?"; `--foot_contact_threshold` asks, *per clip*, "is this clip grounded enough to keep at all?"
+
 | parameter (default) | effect |
 |---|---|
-| `--ground_threshold` (0.05) | Width of the ground-contact band. Widen if stance frames are missed (feet float in the retargeted output); tighten if too many frames register as contact (penetration or no foot clearance). |
-| `--foot_contact_threshold` (0.6) | Minimum contact score for a chunk to be retained. Higher values filter more aggressively. |
+| `--ground_threshold` (0.05) | Thickness (m) of the "floor slab" — the per-frame contact tolerance. A foot vertex within ±½·threshold of the detected floor counts as touching, and each foot's per-frame score is the fraction of its vertices inside the slab. **Too thin:** pivoting / tilted / jittery stance frames get missed → marked airborne → robot feet **float or slide** there. **Too thick:** genuinely lifted feet still count → retargeting pins them down → **penetration / dragging / lost clearance**. To cure the floating in the turning clip, widen this (0.05 → ~0.08). |
+| `--foot_contact_threshold` (0.6) | Per-clip keep/drop gate. Each frame contributes its best-grounded foot sensor; these are averaged over the clip, and the clip is **discarded entirely** if that average ≤ threshold. **Higher = stricter** (only solidly-grounded clips survive — airborne / running / jumping clips get dropped); **lower = lenient** (keep almost everything). It never changes a retained clip's motion — only which clips are kept. |
+
+Because `--ground_threshold` produces the per-frame scores that `--foot_contact_threshold` averages
+over, widening the slab also makes clips more likely to pass the gate — they are not independent.
 
 ### Motion adaptation — `motion_adaptation.py` / `motion_adaptation_multiprocess.py`
 
