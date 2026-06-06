@@ -9,6 +9,16 @@
 > **DAVIAN Robotics, KAIST AI**  
 > arXiv 2025. (\* indicates equal contribution)
 
+---
+
+> [!NOTE]
+> **This is a customized fork of [DAVIAN-Robotics/PHUMA](https://github.com/DAVIAN-Robotics/PHUMA).**
+> It is maintained independently and tailored for our own humanoid work — notably added support for the Booster K1.
+> All credit for the original dataset, paper, and code goes to the DAVIAN Robotics authors listed above.
+> The original is licensed under Apache License 2.0 (see [`LICENSE`](LICENSE)); files in this fork have been modified from the originals.
+
+---
+
 PHUMA leverages large-scale human motion data while overcoming physical artifacts through careful data curation and physics-constrained retargeting to create a high-quality humanoid locomotion dataset.
 
 ## 📰 News
